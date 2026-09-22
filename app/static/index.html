@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MedPrice Compare — same medicine, fair price</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230f766e'/><path d='M9 16h14M16 9v14' stroke='white' stroke-width='4' stroke-linecap='round'/></svg>">
+<style>
+:root{
+  --bg:#f6f5f1;--surface:#fff;--ink:#16211f;--muted:#5d6b68;--line:#e3e1da;
+  --brand:#0f766e;--brand-soft:#d7efeb;--good:#15803d;--good-soft:#dcf2e2;
+  --warn:#b45309;--warn-soft:#fbecd6;--bad:#b91c1c;--shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.05);
+  --r:14px;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0e1413;--surface:#151d1c;--ink:#e7efed;--muted:#94a3a0;--line:#26312f;
+  --brand:#2dd4bf;--brand-soft:#123a36;--good:#4ade80;--good-soft:#123321;
+  --warn:#fbbf24;--warn-soft:#3a2a0f;--bad:#f87171;--shadow:none;}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+header{padding:40px 0 24px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:-.01em;color:var(--brand)}
+.logo svg{width:28px;height:28px}
+h1{font-size:clamp(28px,5vw,44px);line-height:1.1;letter-spacing:-.02em;margin:18px 0 8px;max-width:18ch}
+h1 em{font-style:normal;color:var(--brand)}
+.lede{color:var(--muted);max-width:60ch;margin:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:18px}
+.searchbar{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:24px;position:relative}
+.searchbar input{width:100%;font:inherit;font-size:17px;padding:14px 16px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.searchbar input:focus{outline:2px solid var(--brand);outline-offset:1px}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:10px 14px}
+button.primary{background:var(--brand);color:#fff;border-color:transparent;font-weight:600}
+@media (prefers-color-scheme:dark){button.primary{color:#04201d}}
+button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.suggest{position:absolute;top:100%;left:0;right:0;margin-top:6px;z-index:5;list-style:none;padding:6px;margin-left:0;display:none}
+.suggest li{padding:10px 12px;border-radius:8px;cursor:pointer;display:flex;justify-content:space-between;gap:12px}
+.suggest li:hover,.suggest li[aria-selected=true]{background:var(--brand-soft)}
+.suggest small{color:var(--muted)}
+.controls{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;margin:14px 0 0;color:var(--muted);font-size:14px}
+.controls select,.controls input[type=range]{accent-color:var(--brand)}
+.controls select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--brand-soft);color:var(--brand);font-weight:600}
+.tag.generic{background:var(--good-soft);color:var(--good)}
+main{padding:12px 0 60px;display:grid;gap:18px}
+.empty{text-align:center;color:var(--muted);padding:48px 16px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px}
+.chips button{border-radius:99px;font-size:14px;padding:6px 12px}
+.hero-result{display:grid;grid-template-columns:1.2fr 1fr;gap:18px}
+@media (max-width:760px){.hero-result{grid-template-columns:1fr}}
+.medname{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:4px 0}
+.meta{color:var(--muted);font-size:14px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.stat{border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.stat b{display:block;font-size:22px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.stat span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.stat.hl{background:var(--good-soft);border-color:transparent}.stat.hl b{color:var(--good)}
+.strip{margin-top:18px}
+.strip svg{width:100%;height:74px;display:block}
+.callout{margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--warn-soft);color:var(--ink);font-size:14px}
+.callout b{color:var(--warn)}
+h2{font-size:16px;margin:0 0 12px;letter-spacing:-.005em}
+.offers{width:100%;border-collapse:collapse;font-size:14px}
+.offers th{text-align:left;font-weight:600;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em;padding:8px 6px;border-bottom:1px solid var(--line)}
+.offers td{padding:10px 6px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.offers tr.best td{background:var(--good-soft)}
+.offers tr.best td:first-child{border-radius:8px 0 0 8px}.offers tr.best td:last-child{border-radius:0 8px 8px 0}
+.num{text-align:right}
+.bar{height:6px;border-radius:3px;background:var(--line);position:relative;min-width:60px}
+.bar i{position:absolute;inset:0 auto 0 0;border-radius:3px;background:var(--brand)}
+.subs{display:grid;gap:10px}
+.sub{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.sub .save{font-weight:700;color:var(--good);white-space:nowrap}
+.sub button{font-size:13px;padding:6px 10px}
+.map svg{width:100%;height:auto;display:block;border-radius:10px;background:var(--bg)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+.basket-list{list-style:none;padding:0;margin:0 0 12px;display:flex;flex-wrap:wrap;gap:8px}
+.basket-list li{background:var(--brand-soft);color:var(--brand);border-radius:99px;padding:4px 6px 4px 12px;font-size:13px;display:flex;gap:6px;align-items:center}
+.basket-list button{border:none;background:none;padding:0 6px;color:inherit}
+.report-row{display:grid;grid-template-columns:minmax(0,1.3fr) 2fr 60px;gap:10px;align-items:center;font-size:13px;padding:5px 0}
+.report-row .rng{position:relative;height:10px}
+.report-row .rng i{position:absolute;height:10px;border-radius:5px;background:var(--brand);opacity:.8}
+.muted{color:var(--muted)}
+footer{color:var(--muted);font-size:13px;padding:24px 0 40px;border-top:1px solid var(--line)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="currentColor"/><path d="M9 16h14M16 9v14" stroke="white" stroke-width="4" stroke-linecap="round"/></svg>
+      MedPrice Compare
+    </div>
+    <h1>Same medicine. <em>Up to 50% cheaper</em> down the road.</h1>
+    <p class="lede">Identical prescriptions cost wildly different amounts across pharmacy chains. Search a medicine to see every nearby price, the cheapest store, and generic equivalents with the same salt.</p>
+
+    <div class="searchbar" role="combobox" aria-expanded="false" aria-owns="suggest" aria-haspopup="listbox">
+      <label for="q" class="sr">Search a medicine</label>
+      <input id="q" autocomplete="off" placeholder="Search by brand or salt — e.g. Pantoprazole, Glucora, metformin" aria-autocomplete="list" aria-controls="suggest">
+      <button class="primary" id="go">Compare</button>
+      <ul id="suggest" class="suggest panel" role="listbox"></ul>
+    </div>
+    <div class="controls">
+      <label>Near
+        <select id="area"></select>
+      </label>
+      <button id="locate" type="button">Use my location</button>
+      <label>Within <b id="rlabel">5</b> km
+        <input id="radius" type="range" min="1" max="20" value="5">
+      </label>
+      <label><input id="stock" type="checkbox" checked> In stock only</label>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="panel empty" id="empty">
+      <div>Try one of these:</div>
+      <div class="chips" id="chips"></div>
+    </section>
+  </main>
+
+  <section class="grid2" style="padding-bottom:18px">
+    <div class="panel">
+      <h2>Prescription basket</h2>
+      <p class="muted" style="margin-top:-6px;font-size:14px">Add every medicine on your prescription to find the single store with the lowest total.</p>
+      <ul class="basket-list" id="basket"></ul>
+      <div id="basketOut" class="muted" style="font-size:14px">Your basket is empty.</div>
+    </div>
+    <div class="panel">
+      <h2>How big is the gap? <span class="muted" style="font-weight:400">— price spread per medicine, all stores</span></h2>
+      <div id="report"></div>
+    </div>
+  </section>
+
+  <footer>
+    Demo data: all pharmacy names, brand names and prices are fictional and generated for illustration.
+    Always follow your doctor's advice before switching brands — substitutes shown share salt, strength and form.
+    · <a href="/docs" style="color:var(--brand)">API docs</a>
+  </footer>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const inr = n => '₹' + Number(n).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const AREAS = {"Malviya Nagar":[26.853,75.805],"C-Scheme":[26.911,75.796],"Vaishali Nagar":[26.912,75.743],
+  "Mansarovar":[26.856,75.76],"Raja Park":[26.896,75.829],"Jagatpura":[26.823,75.864],"Bani Park":[26.927,75.792],"Tonk Road":[26.87,75.798]};
+const state = { loc: AREAS["Malviya Nagar"], radius: 5, current: null, basket: new Map(), names: {} };
+
+// ---------- controls
+$('#area').innerHTML = Object.keys(AREAS).map(a => `<option>${a}</option>`).join('') + '<option value="__any">Anywhere in Jaipur</option>';
+$('#area').onchange = e => { state.loc = e.target.value === '__any' ? null : AREAS[e.target.value]; refresh(); };
+$('#radius').oninput = e => { state.radius = +e.target.value; $('#rlabel').textContent = e.target.value; };
+$('#radius').onchange = refresh;
+$('#stock').onchange = refresh;
+$('#locate').onclick = () => navigator.geolocation?.getCurrentPosition(
+  p => { state.loc = [p.coords.latitude, p.coords.longitude]; $('#locate').textContent = '📍 Using your location'; refresh(); },
+  () => alert('Could not get your location — pick an area instead.'));
+
+const qs = extra => { const p = new URLSearchParams(extra);
+  if (state.loc) { p.set('lat', state.loc[0]); p.set('lon', state.loc[1]); p.set('radius_km', state.radius); }
+  return p; };
+const api = (path, opt) => fetch(path, opt).then(r => r.ok ? r.json() : Promise.reject(r));
+
+// ---------- autocomplete
+let sel = -1, results = [], timer;
+$('#q').addEventListener('input', e => { clearTimeout(timer); timer = setTimeout(() => suggest(e.target.value), 120); });
+$('#q').addEventListener('keydown', e => {
+  const items = [...$('#suggest').children];
+  if (e.key === 'ArrowDown') { sel = Math.min(sel + 1, items.length - 1); e.preventDefault(); }
+  else if (e.key === 'ArrowUp') { sel = Math.max(sel - 1, 0); e.preventDefault(); }
+  else if (e.key === 'Enter') { pick(results[sel >= 0 ? sel : 0]); return; }
+  else if (e.key === 'Escape') { hideSuggest(); return; }
+  items.forEach((li, i) => li.setAttribute('aria-selected', i === sel));
+});
+$('#go').onclick = () => results[0] ? pick(results[0]) : suggest($('#q').value).then(() => pick(results[0]));
+document.addEventListener('click', e => { if (!e.target.closest('.searchbar')) hideSuggest(); });
+function hideSuggest(){ $('#suggest').style.display = 'none'; }
+async function suggest(q) {
+  if (!q.trim()) { hideSuggest(); return; }
+  results = await api('/api/search?q=' + encodeURIComponent(q)); sel = -1;
+  $('#suggest').innerHTML = results.map((m, i) => `<li role="option" data-i="${i}"><span>${esc(m.brand)} ${m.is_generic ? '<span class="tag generic">generic</span>' : ''}</span><small>${esc(m.salt)} · ${esc(m.strength)} · ${m.pack_size} ${m.form}s</small></li>`).join('')
+    || '<li class="muted">No match — try the salt name</li>';
+  $('#suggest').style.display = 'block';
+  [...$('#suggest').querySelectorAll('[data-i]')].forEach(li => li.onclick = () => pick(results[+li.dataset.i]));
+}
+function pick(m) { if (!m) return; hideSuggest(); $('#q').value = m.brand; load(m.id); }
+
+// ---------- compare
+async function load(id) {
+  state.current = id;
+  const p = qs({ in_stock_only: $('#stock').checked });
+  const data = await api(`/api/medicines/${id}/compare?` + p);
+  render(data);
+}
+function refresh() { if (state.current) load(state.current); renderBasket(); }
+
+function render({ medicine: m, offers, stats, substitutes }) {
+  state.names[m.id] = m.brand; $('#q').value = m.brand;
+  $('#empty')?.remove();
+  const main = $('#main');
+  if (!offers.length) {
+    main.innerHTML = `<section class="panel empty">No store stocks <b>${esc(m.brand)}</b> within ${state.radius} km. Widen the radius or pick another area.</section>`;
+    return;
+  }
+  const best = offers.find(o => o.pharmacy.id === stats.best_value_pharmacy_id);
+  const generic = substitutes.find(s => s.medicine.is_generic && s.saving_pct > 0);
+  main.innerHTML = `
+  <section class="hero-result">
+    <div class="panel">
+      <div class="meta">${esc(m.category)} ${m.is_generic ? '<span class="tag generic">generic</span>' : '<span class="tag">branded</span>'}</div>
+      <div class="medname">${esc(m.brand)}</div>
+      <div class="meta">${esc(m.salt)} ${esc(m.strength)} · pack of ${m.pack_size} ${m.form}s · MRP ${inr(m.mrp)}</div>
+      <div class="stats">
+        <div class="stat hl"><span>Cheapest</span><b>${inr(stats.min)}</b></div>
+        <div class="stat"><span>Priciest</span><b>${inr(stats.max)}</b></div>
+        <div class="stat"><span>Price gap</span><b>${stats.spread_pct}%</b></div>
+      </div>
+      <div class="strip" aria-label="Every store's price on one line">${strip(offers, stats)}</div>
+      <div class="callout">Buying at the cheapest store instead of the priciest saves <b>${inr(stats.max_saving)}</b> on one pack${
+        generic ? ` — and the generic <b>${esc(generic.medicine.brand)}</b> could save <b>${generic.saving_pct}%</b> more.` : '.'}</div>
+      <p style="margin:12px 0 0"><button onclick="addToBasket('${m.id}')">+ Add to prescription basket</button></p>
+    </div>
+    <div class="panel map">
+      <h2>${state.loc ? 'Stores near you' : 'Stores across the city'}</h2>
+      ${map(offers, best)}
+      ${best ? `<p class="meta" style="margin:10px 0 0">★ Best value (price + distance): <b style="color:var(--ink)">${esc(best.pharmacy.name)}</b> — ${inr(best.price)}, ${best.distance_km} km</p>` : ''}
+    </div>
+  </section>
+
+  <section class="grid2">
+    <div class="panel">
+      <h2>All ${offers.length} prices</h2>
+      <table class="offers">
+        <thead><tr><th>Pharmacy</th><th class="num">Price</th><th class="num">Per ${m.form}</th>${state.loc ? '<th class="num">Km</th>' : ''}<th></th></tr></thead>
+        <tbody>${offers.map((o, i) => `
+          <tr class="${i === 0 ? 'best' : ''}">
+            <td>${esc(o.pharmacy.name)}<div class="muted" style="font-size:12px">${o.pharmacy.open_24x7 ? '24×7 · ' : ''}${o.pharmacy.home_delivery ? 'delivers · ' : ''}updated ${o.updated.slice(5)}</div></td>
+            <td class="num"><b>${inr(o.price)}</b></td>
+            <td class="num">${inr(o.unit_price)}</td>
+            ${state.loc ? `<td class="num">${o.distance_km}</td>` : ''}
+            <td style="width:22%"><div class="bar"><i style="width:${(o.price / stats.max * 100).toFixed(1)}%"></i></div></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>Same salt, other brands</h2>
+      ${substitutes.length ? `<div class="subs">${substitutes.map(s => `
+        <div class="sub">
+          <div><b>${esc(s.medicine.brand)}</b> ${s.medicine.is_generic ? '<span class="tag generic">generic</span>' : ''}
+            <div class="muted" style="font-size:13px">from ${inr(s.cheapest_price)} · pack of ${s.medicine.pack_size}</div></div>
+          <div style="text-align:right">${s.saving_pct > 0 ? `<div class="save">save ${s.saving_pct}%</div>` : `<div class="muted" style="font-size:13px">${Math.abs(s.saving_pct)}% dearer</div>`}
+            <button onclick="loadById('${s.medicine.id}')">Compare</button></div>
+        </div>`).join('')}</div>` : '<p class="muted">No substitutes in stock nearby.</p>'}
+      <p class="muted" style="font-size:12px;margin:12px 0 0">Check with your doctor or pharmacist before switching brands.</p>
+    </div>
+  </section>`;
+}
+window.loadById = id => { load(id); scrollTo({top: $('#main').offsetTop - 16, behavior: 'smooth'}); };
+
+// every store's price as a dot on one axis — the spread made visible
+function strip(offers, stats) {
+  const W = 600, pad = 18, lo = stats.min, hi = stats.max, span = hi - lo || 1;
+  const x = p => pad + (p - lo) / span * (W - 2 * pad);
+  const dots = offers.map((o, i) => `<circle cx="${x(o.price).toFixed(1)}" cy="30" r="${i === 0 ? 8 : 6}" fill="${i === 0 ? 'var(--good)' : 'var(--brand)'}" fill-opacity="${i === 0 ? 1 : .55}"><title>${esc(o.pharmacy.name)}: ${inr(o.price)}</title></circle>`).join('');
+  return `<svg viewBox="0 0 ${W} 74" preserveAspectRatio="none" role="img">
+    <line x1="${pad}" x2="${W - pad}" y1="30" y2="30" stroke="var(--line)" stroke-width="2"/>
+    ${dots}
+    <text x="${pad}" y="66" font-size="13" fill="var(--good)" font-weight="700">${inr(lo)}</text>
+    <text x="${W - pad}" y="66" font-size="13" fill="var(--muted)" text-anchor="end">${inr(hi)}</text>
+    <text x="${W / 2}" y="66" font-size="12" fill="var(--muted)" text-anchor="middle">median ${inr(stats.median)}</text></svg>`;
+}
+
+// schematic map: you at the centre, stores placed by real bearing & distance
+function map(offers, best) {
+  const W = 360, H = 260, cx = W / 2, cy = H / 2;
+  const pts = offers.map(o => o.pharmacy);
+  const c = state.loc || [pts.reduce((a, p) => a + p.lat, 0) / pts.length, pts.reduce((a, p) => a + p.lon, 0) / pts.length];
+  const kx = 111 * Math.cos(c[0] * Math.PI / 180), ky = 111;
+  const maxKm = Math.max(1, ...pts.map(p => Math.hypot((p.lon - c[1]) * kx, (p.lat - c[0]) * ky)));
+  const sc = (Math.min(W, H) / 2 - 22) / maxKm;
+  const lo = offers[0].price, hi = offers.at(-1).price;
+  const col = p => { const t = (p - lo) / ((hi - lo) || 1); return t < .33 ? 'var(--good)' : t < .66 ? 'var(--warn)' : 'var(--bad)'; };
+  const rings = [1, 2, 3].map(f => `<circle cx="${cx}" cy="${cy}" r="${(f / 3) * (Math.min(W, H) / 2 - 22)}" fill="none" stroke="var(--line)" stroke-dasharray="3 4"/>`).join('');
+  const dots = offers.map(o => { const p = o.pharmacy;
+    const x = cx + (p.lon - c[1]) * kx * sc, y = cy - (p.lat - c[0]) * ky * sc, isBest = best && p.id === best.pharmacy.id;
+    return `<g><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${isBest ? 9 : 6}" fill="${col(o.price)}" stroke="var(--surface)" stroke-width="2"/>${isBest ? `<text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" font-size="10" text-anchor="middle" fill="#fff">★</text>` : ''}<title>${esc(p.name)} — ${inr(o.price)}</title></g>`; }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Map of stores coloured by price">${rings}
+    ${state.loc ? `<circle cx="${cx}" cy="${cy}" r="6" fill="var(--ink)"/><text x="${cx + 10}" y="${cy + 4}" font-size="11" fill="var(--muted)">you</text>` : ''}
+    ${dots}<text x="10" y="${H - 10}" font-size="11" fill="var(--muted)">outer ring ≈ ${maxKm.toFixed(1)} km · <tspan fill="var(--good)">●</tspan> cheap <tspan fill="var(--warn)">●</tspan> mid <tspan fill="var(--bad)">●</tspan> dear</text></svg>`;
+}
+
+// ---------- basket
+window.addToBasket = id => { state.basket.set(id, state.names[id] || id); renderBasket(); };
+async function renderBasket() {
+  const ids = [...state.basket.keys()];
+  $('#basket').innerHTML = ids.map(id => `<li>${esc(state.basket.get(id))}<button aria-label="remove" onclick="state.basket.delete('${id}');renderBasket()">×</button></li>`).join('');
+  if (!ids.length) { $('#basketOut').textContent = 'Your basket is empty.'; return; }
+  const body = { medicine_ids: ids, radius_km: state.radius, ...(state.loc ? { lat: state.loc[0], lon: state.loc[1] } : {}) };
+  const rows = await api('/api/basket', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!rows.length) { $('#basketOut').innerHTML = 'No single store nearby stocks everything — try a wider radius.'; return; }
+  const top = rows.slice(0, 4), worst = rows.at(-1);
+  $('#basketOut').innerHTML = top.map((r, i) => `<div class="sub" style="margin-bottom:8px;${i === 0 ? 'background:var(--good-soft);border-color:transparent' : ''}">
+      <span>${esc(r.pharmacy.name)}${r.distance_km != null ? ` <span class="muted">· ${r.distance_km} km</span>` : ''}</span><b>${inr(r.total)}</b></div>`).join('')
+    + (rows.length > 1 ? `<div style="margin-top:6px">Whole prescription: <b style="color:var(--good)">${inr(worst.total - rows[0].total)}</b> cheaper at the best store vs the priciest of ${rows.length}.</div>` : '');
+}
+
+// ---------- market report + starter chips
+(async () => {
+  const rep = await api('/api/report');
+  const rows = rep.medicines.filter(r => !r.is_generic).slice(0, 10);
+  const gMax = Math.max(...rows.map(r => r.max));
+  $('#report').innerHTML = `<p class="muted" style="margin:-6px 0 10px;font-size:14px">Median gap between cheapest and priciest store: <b style="color:var(--ink)">${rep.median_spread_pct}%</b></p>`
+    + rows.map(r => `<div class="report-row"><span title="${esc(r.salt)}">${esc(r.brand)}</span>
+       <div class="rng"><i style="left:${(r.min / gMax * 100).toFixed(1)}%;width:${((r.max - r.min) / gMax * 100).toFixed(1)}%"></i></div>
+       <b style="text-align:right">${r.spread_pct}%</b></div>`).join('');
+  $('#chips').innerHTML = rep.medicines.filter(r => !r.is_generic).slice(0, 6)
+    .map(r => `<button onclick="$('#q').value='${esc(r.brand)}';load('${r.medicine_id}')">${esc(r.brand)} · gap ${r.spread_pct}%</button>`).join('');
+})();
+</script>
+</body>
+</html>
